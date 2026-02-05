@@ -1,16 +1,17 @@
 # CRM Application (Spring Boot + MySQL + Docker)
 
-This is a simple CRM REST API built with Spring Boot, using MySQL for data persistence and containerized with Docker.
+This is a comprehensive CRM REST API built with Spring Boot, using MySQL for data persistence and containerized with Docker. The system supports Leads, Accounts, Contacts, Opportunities, and Activities.
 
 ## Project Structure
 - `src/main/java`: Spring Boot source code (Entities, DTOs, Controllers, Services)
 - `src/main/resources`: Configuration and Flyway migrations
 - `Dockerfile`: Multi-stage build for the Spring Boot app
 - `docker-compose.yml`: Orchestrates the app and MySQL containers
+- `docker-compose.test.yml`: Setup for integration tests
 
 ## Prerequisites
 - Docker and Docker Compose
-- Java 17 and Maven (for local running without Docker)
+- Java 11 and Maven (for local running without Docker)
 
 ## How to Run
 
@@ -32,52 +33,55 @@ This is a simple CRM REST API built with Spring Boot, using MySQL for data persi
    java -jar target/crm-app-0.0.1-SNAPSHOT.jar
    ```
 
-## API Endpoints & Curl Examples
+## Key Modules & Endpoints
 
-### 1. Create a Customer
+### 1. Leads
+Manage potential customers and convert them to Accounts/Contacts.
+- `POST /api/leads`: Create a lead
+- `GET /api/leads`: Search leads (pagination, filtering)
+- `POST /api/leads/{id}/convert`: Convert lead to Account, Contact, and Opportunity
+
+### 2. Accounts & Contacts
+Accounts represent companies, while Contacts are individuals associated with an Account.
+- `GET /api/accounts`: List accounts
+- `POST /api/accounts`: Create an account
+- `GET /api/accounts/{id}/contacts`: Get contacts for an account
+- `GET /api/contacts`: List all contacts
+
+### 3. Opportunities
+Track potential sales deals.
+- `GET /api/opportunities`: Search opportunities by stage, account, amount, etc.
+- `PATCH /api/opportunities/{id}/stage`: Advance an opportunity stage
+
+### 4. Activities
+Track interactions (Calls, Emails, Meetings) with Leads, Accounts, Contacts, or Opportunities.
+- `GET /api/activities`: Search activities with various filters
+- `PATCH /api/activities/{id}/complete`: Mark an activity as completed
+
+### 5. Health Check (Actuator)
 ```bash
-curl -X POST http://localhost:8080/api/customers \
+curl http://localhost:8080/actuator/health
+```
+
+## Example: Create and Convert a Lead
+
+1. **Create a Lead**
+```bash
+curl -X POST http://localhost:8080/api/leads \
      -H "Content-Type: application/json" \
      -d '{
        "firstName": "John",
        "lastName": "Doe",
-       "email": "john.doe@example.com",
-       "phone": "1234567890",
-       "status": "ACTIVE"
+       "email": "john.doe@company.com",
+       "company": "Tech Corp",
+       "status": "NEW",
+       "source": "WEBSITE"
      }'
 ```
 
-### 2. Get All Customers (with Pagination & Search)
+2. **Convert the Lead**
 ```bash
-curl "http://localhost:8080/api/customers?search=John&status=ACTIVE&page=0&size=10"
-```
-
-### 3. Get Customer by ID
-```bash
-curl http://localhost:8080/api/customers/1
-```
-
-### 4. Update Customer
-```bash
-curl -X PUT http://localhost:8080/api/customers/1 \
-     -H "Content-Type: application/json" \
-     -d '{
-       "firstName": "John",
-       "lastName": "Smith",
-       "email": "john.smith@example.com",
-       "phone": "0987654321",
-       "status": "PROSPECT"
-     }'
-```
-
-### 5. Delete Customer
-```bash
-curl -X DELETE http://localhost:8080/api/customers/1
-```
-
-### 6. Health Check (Actuator)
-```bash
-curl http://localhost:8080/actuator/health
+curl -X POST http://localhost:8080/api/leads/1/convert
 ```
 
 ## Troubleshooting
