@@ -1,0 +1,32 @@
+services:
+  test-db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: crm_test_db
+      MYSQL_ROOT_PASSWORD: rootpassword
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  test-runner:
+    image: maven:3.9.6-eclipse-temurin-11
+    working_dir: /app
+    volumes:
+      - .:/app
+      - maven-repo:/root/.m2
+    environment:
+      - SPRING_PROFILES_ACTIVE=test
+      - SPRING_DATASOURCE_URL=jdbc:mysql://test-db:3306/crm_test_db?allowPublicKeyRetrieval=true&useSSL=false
+      - SPRING_DATASOURCE_DRIVER=com.mysql.cj.jdbc.Driver
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=rootpassword
+      - SPRING_JPA_DIALECT=org.hibernate.dialect.MySQL8Dialect
+    depends_on:
+      test-db:
+        condition: service_healthy
+    command: mvn test -Dtest=OpportunityControllerIT,ActivityControllerIT
+
+volumes:
+  maven-repo:

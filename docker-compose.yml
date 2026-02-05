@@ -1,0 +1,42 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: crm-mysql
+    environment:
+      MYSQL_DATABASE: crm_db
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  app:
+    build: .
+    container_name: crm-app
+    working_dir: /app
+    volumes:
+      - .:/app
+      - maven-repo:/root/.m2
+    ports:
+      - "8080:8080"
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DB: crm_db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: rootpassword
+    depends_on:
+      mysql:
+        condition: service_healthy
+    # Use mvn spring-boot:run for development (hot-reload compatible)
+    command: mvn spring-boot:run
+
+volumes:
+  mysql-data:
+  maven-repo:
