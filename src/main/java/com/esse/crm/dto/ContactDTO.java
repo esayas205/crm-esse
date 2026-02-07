@@ -31,7 +31,7 @@ public class ContactDTO {
     private String phone;
     private String jobTitle;
     private boolean isPrimaryContact;
-    private Long accountId;
+    private List<Long> accountIds;
 
     private List<ActivityDTO> activities;
 

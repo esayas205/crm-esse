@@ -40,10 +40,14 @@ public class Account {
     @Column(nullable = false)
     private AccountStatus status;
 
-    @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "account_contacts",
+        joinColumns = @JoinColumn(name = "account_id"),
+        inverseJoinColumns = @JoinColumn(name = "contact_id")
+    )
     @Builder.Default
     @ToString.Exclude
-    @JsonManagedReference
     private List<Contact> contacts = new ArrayList<>();
 
     @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, orphanRemoval = true)

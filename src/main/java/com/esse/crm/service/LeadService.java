@@ -18,6 +18,7 @@ import com.esse.crm.repository.AccountRepository;
 import com.esse.crm.repository.ContactRepository;
 import com.esse.crm.repository.LeadRepository;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ public class LeadService {
     private final ContactRepository contactRepository;
     private final OpportunityService opportunityService;
     private final ActivityRepository activityRepository;
+    private final ModelMapper modelMapper;
 
     @Transactional
     public LeadDTO createLead(LeadDTO leadDTO) {
@@ -156,8 +158,8 @@ public class LeadService {
                             .email(lead.getEmail())
                             .phone(lead.getPhone())
                             .isPrimaryContact(true)
-                            .account(account)
                             .build();
+                    newContact.getAccounts().add(account);
                     Contact saved = contactRepository.save(newContact);
 
                     Activity autoActivity = Activity.builder()
@@ -194,51 +196,14 @@ public class LeadService {
     }
 
     private Lead convertToEntity(LeadDTO dto) {
-        return Lead.builder()
-                .id(dto.getId())
-                .source(dto.getSource())
-                .company(dto.getCompany())
-                .contactName(dto.getContactName())
-                .email(dto.getEmail())
-                .phone(dto.getPhone())
-                .status(dto.getStatus())
-                .ownerUser(dto.getOwnerUser())
-                .build();
+        return modelMapper.map(dto, Lead.class);
     }
 
     private LeadDTO convertToDTO(Lead entity) {
-        return LeadDTO.builder()
-                .id(entity.getId())
-                .source(entity.getSource())
-                .company(entity.getCompany())
-                .contactName(entity.getContactName())
-                .email(entity.getEmail())
-                .phone(entity.getPhone())
-                .status(entity.getStatus())
-                .ownerUser(entity.getOwnerUser())
-                .activities(entity.getActivities() != null ? entity.getActivities().stream()
-                        .map(this::convertActivityToDTO)
-                        .collect(java.util.stream.Collectors.toList()) : null)
-                .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
-                .build();
+        return modelMapper.map(entity, LeadDTO.class);
     }
 
     private com.esse.crm.dto.activity.ActivityDTO convertActivityToDTO(com.esse.crm.entity.Activity entity) {
-        return com.esse.crm.dto.activity.ActivityDTO.builder()
-                .id(entity.getId())
-                .type(entity.getType())
-                .subject(entity.getSubject())
-                .description(entity.getDescription())
-                .dueAt(entity.getDueAt())
-                .completed(entity.isCompleted())
-                .outcome(entity.getOutcome())
-                .leadId(entity.getLeadId())
-                .opportunityId(entity.getOpportunityId())
-                .accountId(entity.getAccountId())
-                .contactId(entity.getContactId())
-                .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
-                .build();
+        return modelMapper.map(entity, com.esse.crm.dto.activity.ActivityDTO.class);
     }
 }

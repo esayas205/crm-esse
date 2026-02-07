@@ -39,11 +39,10 @@ public class Contact {
     @Column(name = "is_primary_contact", nullable = false)
     private boolean isPrimaryContact;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", nullable = false)
-    @JsonBackReference
+    @ManyToMany(mappedBy = "contacts")
+    @Builder.Default
     @ToString.Exclude
-    private Account account;
+    private List<Account> accounts = new ArrayList<>();
 
     @OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

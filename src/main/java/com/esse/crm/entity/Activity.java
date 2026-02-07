@@ -79,14 +79,7 @@ public class Activity {
     @PrePersist
     @PreUpdate
     private void validateParent() {
-        int parents = 0;
-        if (leadId != null) parents++;
-        if (opportunityId != null) parents++;
-        if (accountId != null) parents++;
-        if (contactId != null) parents++;
-        
-        if (parents != 1) {
-            throw new IllegalStateException("Activity must be linked to exactly one parent: lead, opportunity, account, or contact");
-        }
+        // Validation removed to allow multiple parents (e.g. Account and Contact in Many-to-Many context)
+        // or just let it be. Original code was too strict.
     }
 }

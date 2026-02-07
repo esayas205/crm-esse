@@ -20,5 +20,6 @@ public interface ContactRepository extends JpaRepository<Contact, Long> {
            "LOWER(c.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
     Page<Contact> searchContacts(@Param("searchTerm") String searchTerm, Pageable pageable);
 
-    Page<Contact> findByAccountId(Long accountId, Pageable pageable);
+    @Query("SELECT c FROM Contact c JOIN c.accounts a WHERE a.id = :accountId")
+    Page<Contact> findByAccountId(@Param("accountId") Long accountId, Pageable pageable);
 }

@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,11 +45,21 @@ public class ContactService {
 
     @Transactional
     public ContactDTO createContact(ContactDTO contactDTO) {
-        Account account = accountRepository.findById(contactDTO.getAccountId())
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + contactDTO.getAccountId()));
+        List<Account> accounts = accountRepository.findAllById(contactDTO.getAccountIds());
+        if (accounts.size() != contactDTO.getAccountIds().size()) {
+            throw new ResourceNotFoundException("One or more accounts not found");
+        }
 
         Contact contact = convertToEntity(contactDTO);
-        contact.setAccount(account);
+        // In ManyToMany, we need to manage both sides if we want it to be reflected in the session
+        // but typically saving the owning side (Account) works if configured, 
+        // or just setting the collection on the side we're saving.
+        // Since Account "owns" the JoinTable in our config:
+        contact.setAccounts(accounts);
+        for (Account account : accounts) {
+            account.getContacts().add(contact);
+        }
+        
         Contact savedContact = contactRepository.save(contact);
 
         Activity autoActivity = Activity.builder()
@@ -68,8 +79,10 @@ public class ContactService {
         Contact contact = contactRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Contact not found with id: " + id));
         
-        Account account = accountRepository.findById(contactDTO.getAccountId())
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + contactDTO.getAccountId()));
+        List<Account> accounts = accountRepository.findAllById(contactDTO.getAccountIds());
+        if (accounts.size() != contactDTO.getAccountIds().size()) {
+            throw new ResourceNotFoundException("One or more accounts not found");
+        }
 
         contact.setFirstName(contactDTO.getFirstName());
         contact.setLastName(contactDTO.getLastName());
@@ -77,7 +90,21 @@ public class ContactService {
         contact.setPhone(contactDTO.getPhone());
         contact.setJobTitle(contactDTO.getJobTitle());
         contact.setPrimaryContact(contactDTO.isPrimaryContact());
-        contact.setAccount(account);
+        
+        // Update relationships
+        // Remove from old accounts
+        for (Account account : contact.getAccounts()) {
+            account.getContacts().remove(contact);
+        }
+        
+        contact.setAccounts(accounts);
+        
+        // Add to new accounts
+        for (Account account : accounts) {
+            if (!account.getContacts().contains(contact)) {
+                account.getContacts().add(contact);
+            }
+        }
         
         Contact updatedContact = contactRepository.save(contact);
 
@@ -110,7 +137,9 @@ public class ContactService {
                 .phone(contact.getPhone())
                 .jobTitle(contact.getJobTitle())
                 .isPrimaryContact(contact.isPrimaryContact())
-                .accountId(contact.getAccount().getId())
+                .accountIds(contact.getAccounts() != null ? contact.getAccounts().stream()
+                        .map(Account::getId)
+                        .collect(Collectors.toList()) : null)
                 .activities(contact.getActivities() != null ? contact.getActivities().stream()
                         .map(this::convertActivityToDTO)
                         .collect(Collectors.toList()) : null)

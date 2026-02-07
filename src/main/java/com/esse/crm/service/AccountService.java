@@ -119,7 +119,9 @@ public class AccountService {
                 .phone(contact.getPhone())
                 .jobTitle(contact.getJobTitle())
                 .isPrimaryContact(contact.isPrimaryContact())
-                .accountId(contact.getAccount().getId())
+                .accountIds(contact.getAccounts() != null ? contact.getAccounts().stream()
+                        .map(Account::getId)
+                        .collect(Collectors.toList()) : null)
                 .createdAt(contact.getCreatedAt())
                 .updatedAt(contact.getUpdatedAt())
                 .build();
