@@ -2,7 +2,7 @@ package com.esse.crm.entity;
 
 import com.esse.crm.dto.lead.LeadSource;
 import com.esse.crm.dto.lead.LeadStatus;
-import javax.persistence.*;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

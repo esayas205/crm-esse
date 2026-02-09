@@ -17,6 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import java.time.LocalDateTime;
 
@@ -27,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@WithMockUser(authorities = {"ACCOUNT_WRITE", "ACTIVITY_WRITE", "ACTIVITY_READ", "ROLE_ADMIN"})
 public class ActivityControllerIT {
 
     @Autowired
@@ -50,6 +52,7 @@ public class ActivityControllerIT {
     private Long accountId;
 
     @BeforeEach
+    @WithMockUser(authorities = "ACCOUNT_WRITE")
     void setUp() throws Exception {
         activityRepository.deleteAll();
         opportunityRepository.deleteAll();
@@ -63,6 +66,7 @@ public class ActivityControllerIT {
                 .build();
 
         String response = mockMvc.perform(post("/api/accounts")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ACCOUNT_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(accountDTO)))
                 .andExpect(status().isCreated())
@@ -72,6 +76,7 @@ public class ActivityControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = "ACTIVITY_WRITE")
     void shouldCreateActivity() throws Exception {
         ActivityDTO activityDTO = ActivityDTO.builder()
                 .subject("Follow up call")
@@ -91,6 +96,7 @@ public class ActivityControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = {"ACTIVITY_READ", "ACTIVITY_WRITE"})
     void shouldGetActivity() throws Exception {
         ActivityDTO activityDTO = ActivityDTO.builder()
                 .subject("Meeting")
@@ -99,6 +105,7 @@ public class ActivityControllerIT {
                 .build();
 
         String response = mockMvc.perform(post("/api/activities")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ACTIVITY_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(activityDTO)))
                 .andReturn().getResponse().getContentAsString();
@@ -112,6 +119,7 @@ public class ActivityControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = {"ACTIVITY_READ", "ACTIVITY_WRITE"})
     void shouldUpdateActivity() throws Exception {
         ActivityDTO activityDTO = ActivityDTO.builder()
                 .subject("Email")
@@ -120,6 +128,7 @@ public class ActivityControllerIT {
                 .build();
 
         String response = mockMvc.perform(post("/api/activities")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ACTIVITY_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(activityDTO)))
                 .andReturn().getResponse().getContentAsString();
@@ -138,6 +147,7 @@ public class ActivityControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = {"ACTIVITY_READ", "ACTIVITY_WRITE"})
     void shouldCompleteActivity() throws Exception {
         ActivityDTO activityDTO = ActivityDTO.builder()
                 .subject("Task")
@@ -147,6 +157,7 @@ public class ActivityControllerIT {
                 .build();
 
         String response = mockMvc.perform(post("/api/activities")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ACTIVITY_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(activityDTO)))
                 .andReturn().getResponse().getContentAsString();
@@ -161,6 +172,7 @@ public class ActivityControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = "ROLE_ADMIN")
     void shouldDeleteActivity() throws Exception {
         ActivityDTO activityDTO = ActivityDTO.builder()
                 .subject("Delete me")
@@ -183,6 +195,7 @@ public class ActivityControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = {"ACTIVITY_READ", "ACTIVITY_WRITE"})
     void shouldSearchActivities() throws Exception {
         ActivityDTO a1 = ActivityDTO.builder().subject("A1").type(ActivityType.CALL).accountId(accountId).completed(true).build();
         ActivityDTO a2 = ActivityDTO.builder().subject("A2").type(ActivityType.EMAIL).accountId(accountId).completed(false).build();

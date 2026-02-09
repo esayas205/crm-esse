@@ -1,8 +1,8 @@
 package com.esse.crm.dto;
 
 import com.esse.crm.dto.activity.ActivityDTO;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

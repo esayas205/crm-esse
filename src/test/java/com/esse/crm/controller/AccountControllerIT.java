@@ -17,6 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -25,6 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@WithMockUser(roles = "ADMIN", authorities = {"ACCOUNT_READ", "ACCOUNT_WRITE"})
 public class AccountControllerIT {
 
     @Autowired
@@ -52,12 +54,17 @@ public class AccountControllerIT {
     void setUp() {
         activityRepository.deleteAll();
         opportunityRepository.deleteAll();
+        accountRepository.findAll().forEach(a -> {
+            a.getContacts().clear();
+            accountRepository.save(a);
+        });
+        accountRepository.deleteAll();
         contactRepository.deleteAll();
         leadRepository.deleteAll();
-        accountRepository.deleteAll();
     }
 
     @Test
+    @WithMockUser(authorities = "ACCOUNT_WRITE")
     void shouldCreateAccount() throws Exception {
         AccountDTO accountDTO = AccountDTO.builder()
                 .accountName("Acme Corp")
@@ -74,6 +81,7 @@ public class AccountControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = {"ACCOUNT_READ", "ACCOUNT_WRITE"})
     void shouldGetAccount() throws Exception {
         AccountDTO accountDTO = AccountDTO.builder()
                 .accountName("Globex")
@@ -81,19 +89,22 @@ public class AccountControllerIT {
                 .build();
 
         String response = mockMvc.perform(post("/api/accounts")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ACCOUNT_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(accountDTO)))
                 .andReturn().getResponse().getContentAsString();
         
         Long id = objectMapper.readTree(response).get("id").asLong();
 
-        mockMvc.perform(get("/api/accounts/{id}", id))
+        mockMvc.perform(get("/api/accounts/{id}", id)
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ACCOUNT_READ"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(id.intValue())))
                 .andExpect(jsonPath("$.accountName", is("Globex")));
     }
 
     @Test
+    @WithMockUser(authorities = {"ACCOUNT_READ", "ACCOUNT_WRITE"})
     void shouldUpdateAccount() throws Exception {
         AccountDTO accountDTO = AccountDTO.builder()
                 .accountName("Initech")
@@ -101,6 +112,7 @@ public class AccountControllerIT {
                 .build();
 
         String response = mockMvc.perform(post("/api/accounts")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ACCOUNT_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(accountDTO)))
                 .andReturn().getResponse().getContentAsString();
@@ -111,6 +123,7 @@ public class AccountControllerIT {
         accountDTO.setStatus(AccountStatus.INACTIVE);
 
         mockMvc.perform(put("/api/accounts/{id}", id)
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ACCOUNT_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(accountDTO)))
                 .andExpect(status().isOk())
@@ -119,6 +132,7 @@ public class AccountControllerIT {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void shouldDeleteAccount() throws Exception {
         AccountDTO accountDTO = AccountDTO.builder()
                 .accountName("Soylent Corp")
@@ -126,6 +140,7 @@ public class AccountControllerIT {
                 .build();
 
         String response = mockMvc.perform(post("/api/accounts")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ACCOUNT_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(accountDTO)))
                 .andReturn().getResponse().getContentAsString();
@@ -135,17 +150,23 @@ public class AccountControllerIT {
         mockMvc.perform(delete("/api/accounts/{id}", id))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/api/accounts/{id}", id))
+        mockMvc.perform(get("/api/accounts/{id}", id)
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ACCOUNT_READ"))))
                 .andExpect(status().isNotFound());
     }
 
     @Test
+    @WithMockUser(authorities = {"ACCOUNT_READ", "ACCOUNT_WRITE"})
     void shouldSearchAccounts() throws Exception {
         AccountDTO a1 = AccountDTO.builder().accountName("Apple").status(AccountStatus.ACTIVE).industry("Hardware").build();
         AccountDTO a2 = AccountDTO.builder().accountName("Microsoft").status(AccountStatus.ACTIVE).industry("Software").build();
 
-        mockMvc.perform(post("/api/accounts").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(a1)));
-        mockMvc.perform(post("/api/accounts").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(a2)));
+        mockMvc.perform(post("/api/accounts")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ACCOUNT_WRITE")))
+                .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(a1)));
+        mockMvc.perform(post("/api/accounts")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ACCOUNT_WRITE")))
+                .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(a2)));
 
         mockMvc.perform(get("/api/accounts")
                 .param("search", "Apple"))

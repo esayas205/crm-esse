@@ -6,6 +6,7 @@ import com.esse.crm.dto.opportunity.OpportunityDTO;
 import com.esse.crm.dto.opportunity.OpportunityStage;
 import com.esse.crm.repository.ActivityRepository;
 import com.esse.crm.repository.AccountRepository;
+import com.esse.crm.repository.ContactRepository;
 import com.esse.crm.repository.LeadRepository;
 import com.esse.crm.repository.OpportunityRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -28,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@WithMockUser(roles = "ADMIN", authorities = {"DEAL_WRITE", "DEAL_READ", "ACCOUNT_WRITE"})
 public class OpportunityControllerIT {
 
     @Autowired
@@ -38,6 +41,9 @@ public class OpportunityControllerIT {
 
     @Autowired
     private AccountRepository accountRepository;
+
+    @Autowired
+    private ContactRepository contactRepository;
 
     @Autowired
     private LeadRepository leadRepository;
@@ -51,11 +57,17 @@ public class OpportunityControllerIT {
     private Long accountId;
 
     @BeforeEach
+    @WithMockUser(authorities = "ACCOUNT_WRITE")
     void setUp() throws Exception {
         activityRepository.deleteAll();
         opportunityRepository.deleteAll();
-        leadRepository.deleteAll();
+        accountRepository.findAll().forEach(a -> {
+            a.getContacts().clear();
+            accountRepository.save(a);
+        });
         accountRepository.deleteAll();
+        contactRepository.deleteAll();
+        leadRepository.deleteAll();
 
         // Create an account for opportunities
         AccountDTO accountDTO = AccountDTO.builder()
@@ -64,6 +76,7 @@ public class OpportunityControllerIT {
                 .build();
 
         String response = mockMvc.perform(post("/api/accounts")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ACCOUNT_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(accountDTO)))
                 .andExpect(status().isCreated())
@@ -73,6 +86,7 @@ public class OpportunityControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = "DEAL_WRITE")
     void shouldCreateOpportunity() throws Exception {
         OpportunityDTO opportunityDTO = OpportunityDTO.builder()
                 .name("New Project")
@@ -93,6 +107,7 @@ public class OpportunityControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = {"DEAL_READ", "DEAL_WRITE"})
     void shouldGetOpportunity() throws Exception {
         OpportunityDTO opportunityDTO = OpportunityDTO.builder()
                 .name("Existing Project")
@@ -102,6 +117,7 @@ public class OpportunityControllerIT {
                 .build();
 
         String response = mockMvc.perform(post("/api/opportunities")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("DEAL_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(opportunityDTO)))
                 .andReturn().getResponse().getContentAsString();
@@ -115,6 +131,7 @@ public class OpportunityControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = {"DEAL_READ", "DEAL_WRITE"})
     void shouldUpdateOpportunity() throws Exception {
         OpportunityDTO opportunityDTO = OpportunityDTO.builder()
                 .name("Project Alpha")
@@ -124,6 +141,7 @@ public class OpportunityControllerIT {
                 .build();
 
         String response = mockMvc.perform(post("/api/opportunities")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("DEAL_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(opportunityDTO)))
                 .andReturn().getResponse().getContentAsString();
@@ -142,6 +160,7 @@ public class OpportunityControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = {"DEAL_READ", "DEAL_WRITE"})
     void shouldAdvanceStage() throws Exception {
         OpportunityDTO opportunityDTO = OpportunityDTO.builder()
                 .name("Stage Test")
@@ -151,6 +170,7 @@ public class OpportunityControllerIT {
                 .build();
 
         String response = mockMvc.perform(post("/api/opportunities")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("DEAL_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(opportunityDTO)))
                 .andReturn().getResponse().getContentAsString();
@@ -164,6 +184,7 @@ public class OpportunityControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = "ROLE_ADMIN")
     void shouldDeleteOpportunity() throws Exception {
         OpportunityDTO opportunityDTO = OpportunityDTO.builder()
                 .name("To Delete")
@@ -173,6 +194,7 @@ public class OpportunityControllerIT {
                 .build();
 
         String response = mockMvc.perform(post("/api/opportunities")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("DEAL_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(opportunityDTO)))
                 .andReturn().getResponse().getContentAsString();
@@ -187,6 +209,7 @@ public class OpportunityControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = {"DEAL_READ", "DEAL_WRITE"})
     void shouldSearchOpportunities() throws Exception {
         OpportunityDTO o1 = OpportunityDTO.builder().name("Big Deal").stage(OpportunityStage.QUALIFICATION).amount(new BigDecimal("100000.00")).accountId(accountId).build();
         OpportunityDTO o2 = OpportunityDTO.builder().name("Small Deal").stage(OpportunityStage.LOST).amount(new BigDecimal("1000.00")).accountId(accountId).build();

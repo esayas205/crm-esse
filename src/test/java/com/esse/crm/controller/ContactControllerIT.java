@@ -16,6 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import java.util.Arrays;
 import java.util.List;
@@ -27,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@WithMockUser(authorities = {"ACCOUNT_WRITE", "CONTACT_WRITE", "CONTACT_READ"})
 public class ContactControllerIT {
 
     @Autowired
@@ -51,6 +53,7 @@ public class ContactControllerIT {
     private Long accountId2;
 
     @BeforeEach
+    @WithMockUser(authorities = "ACCOUNT_WRITE")
     void setUp() throws Exception {
         activityRepository.deleteAll();
         opportunityRepository.deleteAll();
@@ -68,12 +71,14 @@ public class ContactControllerIT {
         AccountDTO a2 = AccountDTO.builder().accountName("Account 2").status(AccountStatus.ACTIVE).build();
 
         String r1 = mockMvc.perform(post("/api/accounts")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ACCOUNT_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(a1)))
                 .andReturn().getResponse().getContentAsString();
         accountId1 = objectMapper.readTree(r1).get("id").asLong();
 
         String r2 = mockMvc.perform(post("/api/accounts")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ACCOUNT_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(a2)))
                 .andReturn().getResponse().getContentAsString();
@@ -81,6 +86,7 @@ public class ContactControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = "CONTACT_WRITE")
     void shouldCreateContactWithMultipleAccounts() throws Exception {
         ContactDTO contactDTO = ContactDTO.builder()
                 .firstName("John")
@@ -91,6 +97,7 @@ public class ContactControllerIT {
                 .build();
 
         mockMvc.perform(post("/api/contacts")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("CONTACT_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(contactDTO)))
                 .andExpect(status().isCreated())
@@ -100,6 +107,7 @@ public class ContactControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = {"CONTACT_WRITE", "CONTACT_READ"})
     void shouldUpdateContactAccounts() throws Exception {
         // 1. Create with one account
         ContactDTO contactDTO = ContactDTO.builder()
@@ -110,6 +118,7 @@ public class ContactControllerIT {
                 .build();
 
         String response = mockMvc.perform(post("/api/contacts")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("CONTACT_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(contactDTO)))
                 .andReturn().getResponse().getContentAsString();

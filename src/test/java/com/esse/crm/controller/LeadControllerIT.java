@@ -17,6 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -25,6 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@WithMockUser(roles = "ADMIN", authorities = {"LEAD_WRITE", "LEAD_READ"})
 public class LeadControllerIT {
 
     @Autowired
@@ -52,12 +54,17 @@ public class LeadControllerIT {
     void setUp() {
         activityRepository.deleteAll();
         opportunityRepository.deleteAll();
+        accountRepository.findAll().forEach(a -> {
+            a.getContacts().clear();
+            accountRepository.save(a);
+        });
+        accountRepository.deleteAll();
         contactRepository.deleteAll();
         leadRepository.deleteAll();
-        accountRepository.deleteAll();
     }
 
     @Test
+    @WithMockUser(authorities = "LEAD_WRITE")
     void shouldCreateLead() throws Exception {
         LeadDTO leadDTO = LeadDTO.builder()
                 .source(LeadSource.WEB)
@@ -68,6 +75,7 @@ public class LeadControllerIT {
                 .build();
 
         mockMvc.perform(post("/api/leads")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("LEAD_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(leadDTO)))
                 .andExpect(status().isCreated())
@@ -78,6 +86,7 @@ public class LeadControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = {"LEAD_READ", "LEAD_WRITE"})
     void shouldGetLead() throws Exception {
         LeadDTO leadDTO = LeadDTO.builder()
                 .source(LeadSource.WEB)
@@ -88,6 +97,7 @@ public class LeadControllerIT {
                 .build();
 
         String response = mockMvc.perform(post("/api/leads")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("LEAD_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(leadDTO)))
                 .andReturn().getResponse().getContentAsString();
@@ -101,6 +111,7 @@ public class LeadControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = {"LEAD_READ", "LEAD_WRITE"})
     void shouldUpdateLead() throws Exception {
         LeadDTO leadDTO = LeadDTO.builder()
                 .source(LeadSource.WEB)
@@ -111,6 +122,7 @@ public class LeadControllerIT {
                 .build();
 
         String response = mockMvc.perform(post("/api/leads")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("LEAD_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(leadDTO)))
                 .andReturn().getResponse().getContentAsString();
@@ -129,6 +141,7 @@ public class LeadControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = "LEAD_WRITE")
     void shouldConvertLead() throws Exception {
         // 1. Create a lead
         LeadDTO leadDTO = LeadDTO.builder()
@@ -140,6 +153,7 @@ public class LeadControllerIT {
                 .build();
 
         String response = mockMvc.perform(post("/api/leads")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("LEAD_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(leadDTO)))
                 .andReturn().getResponse().getContentAsString();
@@ -161,6 +175,7 @@ public class LeadControllerIT {
     }
 
     @Test
+    @WithMockUser(authorities = "LEAD_WRITE")
     void shouldFailConvertingIfNotQualified() throws Exception {
         LeadDTO leadDTO = LeadDTO.builder()
                 .source(LeadSource.WEB)
@@ -171,6 +186,7 @@ public class LeadControllerIT {
                 .build();
 
         String response = mockMvc.perform(post("/api/leads")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("LEAD_WRITE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(leadDTO)))
                 .andReturn().getResponse().getContentAsString();

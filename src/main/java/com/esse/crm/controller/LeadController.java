@@ -6,12 +6,13 @@ import com.esse.crm.dto.lead.LeadSource;
 import com.esse.crm.dto.lead.LeadStatus;
 import com.esse.crm.service.LeadService;
 import com.esse.crm.service.ActivityService;
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,16 +25,19 @@ public class LeadController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAuthority('LEAD_WRITE')")
     public LeadDTO createLead(@Valid @RequestBody LeadDTO leadDTO) {
         return leadService.createLead(leadDTO);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('LEAD_READ')")
     public LeadDTO getLead(@PathVariable Long id) {
         return leadService.getLead(id);
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('LEAD_READ')")
     public Page<LeadDTO> searchLeads(
             @RequestParam(required = false) LeadStatus status,
             @RequestParam(required = false) String ownerUser,
@@ -44,12 +48,14 @@ public class LeadController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('LEAD_WRITE')")
     public LeadDTO updateLead(@PathVariable Long id, @Valid @RequestBody LeadDTO leadDTO) {
         return leadService.updateLead(id, leadDTO);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public void deleteLead(@PathVariable Long id) {
         leadService.deleteLead(id);
     }

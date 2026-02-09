@@ -3,15 +3,53 @@
 This is a comprehensive CRM REST API built with Spring Boot, using MySQL for data persistence and containerized with Docker. The system supports Leads, Accounts, Contacts, Opportunities, and Activities.
 
 ## Project Structure
-- `src/main/java`: Spring Boot source code (Entities, DTOs, Controllers, Services)
+- `src/main/java`: Spring Boot source code (Entities, DTOs, Controllers, Services, Security)
 - `src/main/resources`: Configuration and Flyway migrations
 - `Dockerfile`: Multi-stage build for the Spring Boot app
 - `docker-compose.yml`: Orchestrates the app and MySQL containers
 - `docker-compose.test.yml`: Setup for integration tests
 
+## Security & Authentication
+The API is secured using JWT (JSON Web Token). All requests to protected endpoints must include a valid JWT in the `Authorization` header.
+
+### 1. Register a new user
+```bash
+curl -X POST http://localhost:8080/api/auth/register \
+     -H "Content-Type: application/json" \
+     -d '{
+       "username": "admin",
+       "email": "admin@example.com",
+       "password": "password123"
+     }'
+```
+
+### 2. Login to get a token
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{
+       "username": "admin",
+       "password": "password123"
+     }'
+```
+Response:
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiJ9...",
+  "username": "admin",
+  "authorities": ["ROLE_ADMIN"]
+}
+```
+
+### 3. Using the Token
+Include the token in the `Authorization` header of your subsequent requests:
+```bash
+-H "Authorization: Bearer <your_token_here>"
+```
+
 ## Prerequisites
 - Docker and Docker Compose
-- Java 11 and Maven (for local running without Docker)
+- Java 17 and Maven (for local running without Docker)
 
 ## How to Run
 
@@ -21,7 +59,7 @@ This is a comprehensive CRM REST API built with Spring Boot, using MySQL for dat
    docker-compose up --build
    ```
 2. The app will be available at `http://localhost:8080`.
-3. MySQL is exposed on `localhost:3306` (Tradeoff: convenient for local dev, but should be hidden in production).
+3. MySQL is exposed on `localhost:3306`.
 
 ### Local Running (Manual)
 1. Build the JAR:
@@ -34,6 +72,7 @@ This is a comprehensive CRM REST API built with Spring Boot, using MySQL for dat
    ```
 
 ## Key Modules & Endpoints
+All endpoints below (except health check and auth) require the `Authorization` header.
 
 ### 1. Leads
 Manage potential customers and convert them to Accounts/Contacts.
@@ -59,6 +98,7 @@ Track interactions (Calls, Emails, Meetings) with Leads, Accounts, Contacts, or 
 - `PATCH /api/activities/{id}/complete`: Mark an activity as completed
 
 ### 5. Health Check (Actuator)
+The health check endpoint is public.
 ```bash
 curl http://localhost:8080/actuator/health
 ```
@@ -69,6 +109,7 @@ curl http://localhost:8080/actuator/health
 ```bash
 curl -X POST http://localhost:8080/api/leads \
      -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <your_token>" \
      -d '{
        "firstName": "John",
        "lastName": "Doe",
@@ -81,10 +122,13 @@ curl -X POST http://localhost:8080/api/leads \
 
 2. **Convert the Lead**
 ```bash
-curl -X POST http://localhost:8080/api/leads/1/convert
+curl -X POST http://localhost:8080/api/leads/1/convert \
+     -H "Authorization: Bearer <your_token>"
 ```
 
 ## Troubleshooting
+- **401 Unauthorized**: Missing or invalid JWT token. Ensure you have the `Authorization: Bearer <token>` header.
+- **403 Forbidden**: User doesn't have the required permissions for the resource.
 - **Communications link failure**: Usually means the DB isn't ready. The `depends_on` healthcheck in `docker-compose.yml` handles this.
 - **Access denied for user 'root'**: Check the `MYSQL_ROOT_PASSWORD` and `MYSQL_PASSWORD` env vars match.
 - **Flyway Migration Failure**: Ensure the SQL script in `src/main/resources/db/migration` is valid for MySQL 8.0.

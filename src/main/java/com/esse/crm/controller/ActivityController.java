@@ -3,7 +3,7 @@ package com.esse.crm.controller;
 import com.esse.crm.dto.activity.ActivityDTO;
 import com.esse.crm.dto.activity.ActivityType;
 import com.esse.crm.service.ActivityService;
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

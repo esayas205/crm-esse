@@ -1,7 +1,7 @@
 package com.esse.crm.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import javax.persistence.*;
+import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;

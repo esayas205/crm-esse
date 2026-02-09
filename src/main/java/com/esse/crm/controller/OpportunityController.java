@@ -4,13 +4,14 @@ import com.esse.crm.dto.opportunity.OpportunityDTO;
 import com.esse.crm.dto.opportunity.OpportunityStage;
 import com.esse.crm.service.OpportunityService;
 import com.esse.crm.service.ActivityService;
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -26,16 +27,19 @@ public class OpportunityController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAuthority('DEAL_WRITE')")
     public OpportunityDTO createOpportunity(@Valid @RequestBody OpportunityDTO dto) {
         return opportunityService.createOpportunity(dto);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('DEAL_READ')")
     public OpportunityDTO getOpportunity(@PathVariable Long id) {
         return opportunityService.getOpportunity(id);
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('DEAL_READ')")
     public Page<OpportunityDTO> searchOpportunities(
             @RequestParam(required = false) OpportunityStage stage,
             @RequestParam(required = false) Long accountId,
@@ -48,6 +52,7 @@ public class OpportunityController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('DEAL_WRITE')")
     public OpportunityDTO updateOpportunity(@PathVariable Long id, @Valid @RequestBody OpportunityDTO dto) {
         return opportunityService.updateOpportunity(id, dto);
     }
@@ -59,6 +64,7 @@ public class OpportunityController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public void deleteOpportunity(@PathVariable Long id) {
         opportunityService.deleteOpportunity(id);
     }
