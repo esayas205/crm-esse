@@ -107,6 +107,8 @@ public class AccountService {
                         .collect(Collectors.toList()) : null)
                 .createdAt(account.getCreatedAt())
                 .updatedAt(account.getUpdatedAt())
+                .createdBy(account.getCreatedBy())
+                .updatedBy(account.getUpdatedBy())
                 .build();
     }
 

@@ -3,10 +3,8 @@ package com.esse.crm.entity;
 import com.esse.crm.dto.lead.LeadSource;
 import com.esse.crm.dto.lead.LeadStatus;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -16,11 +14,12 @@ import java.util.List;
 
 @Entity
 @Table(name = "leads")
+@EqualsAndHashCode(callSuper = true)
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Lead {
+public class Lead extends AuditedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -51,12 +50,4 @@ public class Lead {
     @OneToMany(mappedBy = "lead", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Activity> activities = new ArrayList<>();
-
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 }

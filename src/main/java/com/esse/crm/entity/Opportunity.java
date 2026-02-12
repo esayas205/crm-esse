@@ -2,10 +2,8 @@ package com.esse.crm.entity;
 
 import com.esse.crm.dto.opportunity.OpportunityStage;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -17,11 +15,12 @@ import java.util.List;
 
 @Entity
 @Table(name = "opportunities")
+@EqualsAndHashCode(callSuper = true)
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Opportunity {
+public class Opportunity extends AuditedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -53,12 +52,4 @@ public class Opportunity {
     @OneToMany(mappedBy = "opportunity", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Activity> activities = new ArrayList<>();
-
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 }

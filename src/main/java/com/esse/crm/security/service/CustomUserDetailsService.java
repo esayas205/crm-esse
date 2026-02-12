@@ -1,5 +1,7 @@
 package com.esse.crm.security.service;
 
+import com.esse.crm.security.dto.UserPrincipal;
+import com.esse.crm.security.entity.AppUser;
 import com.esse.crm.security.repository.AppUserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,7 +17,14 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByUsernameWithAuthorities(username)
+        AppUser user = userRepository.findByUsernameWithAuthorities(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+
+        return UserPrincipal.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .password(user.getPassword())
+                .authorities(user.getAuthorities())
+                .build();
     }
 }
