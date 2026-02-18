@@ -19,10 +19,8 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=test
       - SPRING_DATASOURCE_URL=jdbc:mysql://test-db:3306/crm_test_db?allowPublicKeyRetrieval=true&useSSL=false
-      - SPRING_DATASOURCE_DRIVER=com.mysql.cj.jdbc.Driver
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=rootpassword
-      - SPRING_JPA_DIALECT=org.hibernate.dialect.MySQL8Dialect
     depends_on:
       test-db:
         condition: service_healthy

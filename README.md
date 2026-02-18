@@ -87,7 +87,23 @@ Include the token in the `Authorization` header of your subsequent requests:
    docker-compose up --build
    ```
 2. The app will be available at `http://localhost:8080`.
-3. MySQL is exposed on `localhost:3306`.
+3. API Documentation (Swagger UI): `http://localhost:8080/swagger-ui.html`.
+    - **Note on Authentication:** To use protected endpoints in Swagger UI, click the **"Authorize"** button, enter your JWT (obtained from `/api/auth/login`) in the value field, and click "Authorize".
+4. OpenAPI JSON: `http://localhost:8080/v3/api-docs`.
+
+### Running Maven and Tests via Docker
+You can run any Maven command through Docker using the provided `run-docker.sh` script. This ensures a consistent environment without needing Maven installed locally.
+
+```bash
+# Run tests
+./run-docker.sh test
+
+# Clean and build
+./run-docker.sh clean package
+
+# Run any other maven command
+./run-docker.sh clean install -DskipTests
+```
 
 ### Local Running (Manual)
 1. Build the JAR:
