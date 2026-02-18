@@ -35,16 +35,44 @@ curl -X POST http://localhost:8080/api/auth/login \
 Response:
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiJ9...",
+  "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "refreshToken": "random_opaque_string...",
   "username": "admin",
   "authorities": ["ROLE_ADMIN"]
 }
 ```
+*Note: For web clients, the `refreshToken` is also set as an `HttpOnly`, `Secure` cookie named `refresh_token`.*
 
-### 3. Using the Token
+### 3. Refreshing a token
+When the `accessToken` expires (15 minutes by default), you can get a new one using the `refreshToken`.
+
+#### For Web Clients (Cookie-based)
+The browser automatically sends the `refresh_token` cookie.
+```bash
+curl -X POST http://localhost:8080/api/auth/refresh \
+     -H "Cookie: refresh_token=<your_refresh_token>" \
+     -H "X-CSRF-TOKEN: <csrf_token>"
+```
+
+#### For Mobile Clients (Body-based)
+Send the `refreshToken` in the request body.
+```bash
+curl -X POST http://localhost:8080/api/auth/refresh \
+     -H "Content-Type: text/plain" \
+     -d "<your_refresh_token>"
+```
+
+### 4. Logout
+Revokes the refresh token and clears the cookie.
+```bash
+curl -X POST http://localhost:8080/api/auth/logout \
+     -H "Cookie: refresh_token=<your_refresh_token>"
+```
+
+### 5. Using the Access Token
 Include the token in the `Authorization` header of your subsequent requests:
 ```bash
--H "Authorization: Bearer <your_token_here>"
+-H "Authorization: Bearer <your_access_token_here>"
 ```
 
 ## Prerequisites

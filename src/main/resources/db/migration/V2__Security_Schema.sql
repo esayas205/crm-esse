@@ -56,7 +56,7 @@ SELECT r.id, p.id FROM roles r, permissions p WHERE r.name = 'SUPPORT' AND p.nam
 
 -- One Admin User (Password: Admin@123)
 -- BCrypt hashed password for 'Admin@123'
-INSERT INTO users (username, password, email) VALUES ('admin', '$2a$10$8.VAgL9xVq6JNoYf9qg.M.f9JgS3S4U8S6S4U8S6S4U8S6S4U8S6S', 'admin@example.com');
+INSERT INTO users (username, password, email) VALUES ('admin', '$2b$12$IjMBEOaVJ7ccIkYBfQjWT.UirY27ox1N3FcecZ40AsbOhStj3JgWW', 'admin@example.com');
 
 -- Assign ADMIN role to admin user
 INSERT INTO user_roles (user_id, role_id)

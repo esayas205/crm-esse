@@ -27,9 +27,10 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final RefreshTokenService refreshTokenService;
 
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public AuthResponse register(RegisterRequest request, String deviceInfo, String ipAddress) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new ConflictException("Username is already taken");
         }
@@ -41,21 +42,14 @@ public class AuthenticationService {
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .roles(Set.of()) // By default no roles or assign a default SALES role if needed
+                .roles(Set.of())
                 .build();
 
         userRepository.save(user);
-        var jwtToken = jwtService.generateToken(user);
-        return AuthResponse.builder()
-                .token(jwtToken)
-                .username(user.getUsername())
-                .authorities(user.getAuthorities().stream()
-                        .map(GrantedAuthority::getAuthority)
-                        .collect(Collectors.toList()))
-                .build();
+        return createAuthResponse(user, deviceInfo, ipAddress);
     }
 
-    public AuthResponse login(LoginRequest request) {
+    public AuthResponse login(LoginRequest request, String deviceInfo, String ipAddress) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getUsername(),
@@ -64,9 +58,38 @@ public class AuthenticationService {
         );
         var user = userRepository.findByUsernameWithAuthorities(request.getUsername())
                 .orElseThrow();
+        return createAuthResponse(user, deviceInfo, ipAddress);
+    }
+
+    @Transactional
+    public AuthResponse refresh(String refreshToken, String deviceInfo, String ipAddress) {
+        var result = refreshTokenService.rotateToken(refreshToken);
+        var user = result.getRefreshToken().getUser();
+        
         var jwtToken = jwtService.generateToken(user);
+        
         return AuthResponse.builder()
-                .token(jwtToken)
+                .accessToken(jwtToken)
+                .refreshToken(result.getRawToken())
+                .username(user.getUsername())
+                .authorities(user.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .collect(Collectors.toList()))
+                .build();
+    }
+
+    @Transactional
+    public void logout(String refreshToken) {
+        refreshTokenService.revokeToken(refreshToken);
+    }
+
+    private AuthResponse createAuthResponse(AppUser user, String deviceInfo, String ipAddress) {
+        var jwtToken = jwtService.generateToken(user);
+        var refreshTokenResult = refreshTokenService.generateRefreshToken(user, deviceInfo, ipAddress, null);
+
+        return AuthResponse.builder()
+                .accessToken(jwtToken)
+                .refreshToken(refreshTokenResult.getRawToken())
                 .username(user.getUsername())
                 .authorities(user.getAuthorities().stream()
                         .map(GrantedAuthority::getAuthority)

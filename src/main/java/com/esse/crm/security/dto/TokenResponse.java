@@ -5,15 +5,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class AuthResponse {
+public class TokenResponse {
     private String accessToken;
-    private String refreshToken; // For mobile clients
-    private String username;
-    private List<String> authorities;
+    private String refreshToken;
 }
