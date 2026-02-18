@@ -4,13 +4,11 @@ import com.esse.crm.dto.AccountDTO;
 import com.esse.crm.dto.AccountStatus;
 import com.esse.crm.dto.ContactDTO;
 import com.esse.crm.dto.activity.ActivityDTO;
-import com.esse.crm.dto.activity.ActivityType;
 import com.esse.crm.entity.Account;
 import com.esse.crm.entity.Activity;
 import com.esse.crm.entity.Contact;
 import com.esse.crm.exception.ResourceNotFoundException;
 import com.esse.crm.repository.AccountRepository;
-import com.esse.crm.repository.ActivityRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,7 +22,6 @@ import java.util.stream.Collectors;
 public class AccountService {
 
     private final AccountRepository accountRepository;
-    private final ActivityRepository activityRepository;
 
     public Page<AccountDTO> getAllAccounts(String searchTerm, Pageable pageable) {
         return accountRepository.searchAccounts(searchTerm, pageable)
@@ -41,15 +38,6 @@ public class AccountService {
     public AccountDTO createAccount(AccountDTO accountDTO) {
         Account account = convertToEntity(accountDTO);
         Account savedAccount = accountRepository.save(account);
-
-        Activity autoActivity = Activity.builder()
-                .type(ActivityType.NOTE)
-                .subject("Account Created")
-                .description("A new account is created: " + savedAccount.getAccountName())
-                .accountId(savedAccount.getId())
-                .completed(true)
-                .build();
-        activityRepository.save(autoActivity);
 
         return convertToDTO(savedAccount);
     }
@@ -68,15 +56,6 @@ public class AccountService {
         account.setStatus(accountDTO.getStatus());
         
         Account updatedAccount = accountRepository.save(account);
-
-        Activity autoActivity = Activity.builder()
-                .type(ActivityType.NOTE)
-                .subject("Account Updated")
-                .description("Account " + updatedAccount.getAccountName() + " was updated")
-                .accountId(updatedAccount.getId())
-                .completed(true)
-                .build();
-        activityRepository.save(autoActivity);
 
         return convertToDTO(updatedAccount);
     }

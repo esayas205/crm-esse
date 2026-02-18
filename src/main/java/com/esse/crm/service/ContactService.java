@@ -2,13 +2,11 @@ package com.esse.crm.service;
 
 import com.esse.crm.dto.ContactDTO;
 import com.esse.crm.dto.activity.ActivityDTO;
-import com.esse.crm.dto.activity.ActivityType;
 import com.esse.crm.entity.Account;
 import com.esse.crm.entity.Activity;
 import com.esse.crm.entity.Contact;
 import com.esse.crm.exception.ResourceNotFoundException;
 import com.esse.crm.repository.AccountRepository;
-import com.esse.crm.repository.ActivityRepository;
 import com.esse.crm.repository.ContactRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -25,7 +23,6 @@ public class ContactService {
 
     private final ContactRepository contactRepository;
     private final AccountRepository accountRepository;
-    private final ActivityRepository activityRepository;
 
     public Page<ContactDTO> getAllContacts(String searchTerm, Pageable pageable) {
         return contactRepository.searchContacts(searchTerm, pageable)
@@ -61,15 +58,6 @@ public class ContactService {
         }
         
         Contact savedContact = contactRepository.save(contact);
-
-        Activity autoActivity = Activity.builder()
-                .type(ActivityType.NOTE)
-                .subject("Contact Created")
-                .description("A new contact is created: " + savedContact.getFirstName() + " " + savedContact.getLastName())
-                .contactId(savedContact.getId())
-                .completed(true)
-                .build();
-        activityRepository.save(autoActivity);
 
         return convertToDTO(savedContact);
     }
@@ -107,15 +95,6 @@ public class ContactService {
         }
         
         Contact updatedContact = contactRepository.save(contact);
-
-        Activity autoActivity = Activity.builder()
-                .type(ActivityType.NOTE)
-                .subject("Contact Updated")
-                .description("Contact " + updatedContact.getFirstName() + " " + updatedContact.getLastName() + " was updated")
-                .contactId(updatedContact.getId())
-                .completed(true)
-                .build();
-        activityRepository.save(autoActivity);
 
         return convertToDTO(updatedContact);
     }

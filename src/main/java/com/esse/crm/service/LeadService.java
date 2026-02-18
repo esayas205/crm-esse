@@ -10,8 +10,6 @@ import com.esse.crm.entity.Account;
 import com.esse.crm.entity.Contact;
 import com.esse.crm.entity.Lead;
 import com.esse.crm.entity.Activity;
-import com.esse.crm.dto.activity.ActivityType;
-import com.esse.crm.repository.ActivityRepository;
 import com.esse.crm.exception.ConflictException;
 import com.esse.crm.exception.ResourceNotFoundException;
 import com.esse.crm.repository.AccountRepository;
@@ -35,7 +33,6 @@ public class LeadService {
     private final AccountRepository accountRepository;
     private final ContactRepository contactRepository;
     private final OpportunityService opportunityService;
-    private final ActivityRepository activityRepository;
     private final ModelMapper modelMapper;
 
     @Transactional
@@ -48,15 +45,6 @@ public class LeadService {
             lead.setStatus(LeadStatus.NEW);
         }
         Lead savedLead = leadRepository.save(lead);
-
-        Activity autoActivity = Activity.builder()
-                .type(ActivityType.NOTE)
-                .subject("Lead Created")
-                .description("A new lead is created with a name " + savedLead.getContactName())
-                .leadId(savedLead.getId())
-                .completed(true)
-                .build();
-        activityRepository.save(autoActivity);
 
         return convertToDTO(savedLead);
     }
@@ -86,15 +74,6 @@ public class LeadService {
         
         Lead updatedLead = leadRepository.save(lead);
 
-        Activity autoActivity = Activity.builder()
-                .type(ActivityType.NOTE)
-                .subject("Lead Updated")
-                .description("Lead " + updatedLead.getContactName() + " was updated")
-                .leadId(updatedLead.getId())
-                .completed(true)
-                .build();
-        activityRepository.save(autoActivity);
-
         return convertToDTO(updatedLead);
     }
 
@@ -103,15 +82,6 @@ public class LeadService {
         Lead lead = leadRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lead not found with id: " + id));
         
-        Activity autoActivity = Activity.builder()
-                .type(ActivityType.NOTE)
-                .subject("Lead Deleted")
-                .description("Lead " + lead.getContactName() + " was deleted")
-                .leadId(lead.getId())
-                .completed(true)
-                .build();
-        activityRepository.save(autoActivity);
-
         leadRepository.delete(lead);
     }
 
@@ -132,17 +102,7 @@ public class LeadService {
                             .phone(lead.getPhone())
                             .status(AccountStatus.ACTIVE)
                             .build();
-                    Account saved = accountRepository.save(newAccount);
-
-                    Activity autoActivity = Activity.builder()
-                            .type(ActivityType.NOTE)
-                            .subject("Account Created from Lead")
-                            .description("Account " + saved.getAccountName() + " created during lead conversion")
-                            .accountId(saved.getId())
-                            .completed(true)
-                            .build();
-                    activityRepository.save(autoActivity);
-                    return saved;
+                    return accountRepository.save(newAccount);
                 });
 
         // 2. Find or create Contact
@@ -160,17 +120,7 @@ public class LeadService {
                             .isPrimaryContact(true)
                             .build();
                     newContact.getAccounts().add(account);
-                    Contact saved = contactRepository.save(newContact);
-
-                    Activity autoActivity = Activity.builder()
-                            .type(ActivityType.NOTE)
-                            .subject("Contact Created from Lead")
-                            .description("Contact " + saved.getFirstName() + " " + saved.getLastName() + " created during lead conversion")
-                            .contactId(saved.getId())
-                            .completed(true)
-                            .build();
-                    activityRepository.save(autoActivity);
-                    return saved;
+                    return contactRepository.save(newContact);
                 });
 
         // 3. Create Opportunity

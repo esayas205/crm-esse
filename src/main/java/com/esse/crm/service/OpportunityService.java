@@ -6,8 +6,6 @@ import com.esse.crm.entity.Account;
 import com.esse.crm.entity.Lead;
 import com.esse.crm.entity.Opportunity;
 import com.esse.crm.entity.Activity;
-import com.esse.crm.dto.activity.ActivityType;
-import com.esse.crm.repository.ActivityRepository;
 import com.esse.crm.exception.ResourceNotFoundException;
 import com.esse.crm.repository.AccountRepository;
 import com.esse.crm.repository.LeadRepository;
@@ -30,7 +28,6 @@ public class OpportunityService {
     private final OpportunityRepository opportunityRepository;
     private final AccountRepository accountRepository;
     private final LeadRepository leadRepository;
-    private final ActivityRepository activityRepository;
 
     private static final Set<OpportunityStage> FINAL_STAGES = EnumSet.of(OpportunityStage.WON, OpportunityStage.LOST);
 
@@ -38,15 +35,6 @@ public class OpportunityService {
     public OpportunityDTO createOpportunity(OpportunityDTO dto) {
         Opportunity opportunity = convertToEntity(dto);
         Opportunity savedOpportunity = opportunityRepository.save(opportunity);
-
-        Activity autoActivity = Activity.builder()
-                .type(ActivityType.NOTE)
-                .subject("Opportunity Created")
-                .description("A new opportunity is created with a name " + savedOpportunity.getName())
-                .opportunityId(savedOpportunity.getId())
-                .completed(true)
-                .build();
-        activityRepository.save(autoActivity);
 
         return convertToDTO(savedOpportunity);
     }
@@ -74,15 +62,6 @@ public class OpportunityService {
 
         Opportunity updatedOpportunity = opportunityRepository.save(opportunity);
 
-        Activity autoActivity = Activity.builder()
-                .type(ActivityType.NOTE)
-                .subject("Opportunity Updated")
-                .description("Opportunity " + updatedOpportunity.getName() + " was updated")
-                .opportunityId(updatedOpportunity.getId())
-                .completed(true)
-                .build();
-        activityRepository.save(autoActivity);
-
         return convertToDTO(updatedOpportunity);
     }
 
@@ -100,15 +79,6 @@ public class OpportunityService {
         opportunity.setStage(newStage);
         Opportunity updatedOpportunity = opportunityRepository.save(opportunity);
 
-        Activity autoActivity = Activity.builder()
-                .type(ActivityType.NOTE)
-                .subject("Opportunity Stage Changed")
-                .description("Opportunity stage changed from " + currentStage + " to " + newStage)
-                .opportunityId(updatedOpportunity.getId())
-                .completed(true)
-                .build();
-        activityRepository.save(autoActivity);
-
         return convertToDTO(updatedOpportunity);
     }
 
@@ -117,15 +87,6 @@ public class OpportunityService {
         Opportunity opportunity = opportunityRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Opportunity not found with id: " + id));
         
-        Activity autoActivity = Activity.builder()
-                .type(ActivityType.NOTE)
-                .subject("Opportunity Deleted")
-                .description("Opportunity " + opportunity.getName() + " was deleted")
-                .opportunityId(opportunity.getId())
-                .completed(true)
-                .build();
-        activityRepository.save(autoActivity);
-
         opportunityRepository.delete(opportunity);
     }
 
