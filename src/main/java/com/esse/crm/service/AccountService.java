@@ -23,11 +23,13 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
 
+    @Transactional(readOnly = true)
     public Page<AccountDTO> getAllAccounts(String searchTerm, Pageable pageable) {
         return accountRepository.searchAccounts(searchTerm, pageable)
                 .map(this::convertToDTO);
     }
 
+    @Transactional(readOnly = true)
     public AccountDTO getAccountById(Long id) {
         Account account = accountRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + id));

@@ -24,16 +24,19 @@ public class ContactService {
     private final ContactRepository contactRepository;
     private final AccountRepository accountRepository;
 
+    @Transactional(readOnly = true)
     public Page<ContactDTO> getAllContacts(String searchTerm, Pageable pageable) {
         return contactRepository.searchContacts(searchTerm, pageable)
                 .map(this::convertToDTO);
     }
 
+    @Transactional(readOnly = true)
     public Page<ContactDTO> getContactsByAccount(Long accountId, Pageable pageable) {
         return contactRepository.findByAccountId(accountId, pageable)
                 .map(this::convertToDTO);
     }
 
+    @Transactional(readOnly = true)
     public ContactDTO getContactById(Long id) {
         Contact contact = contactRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Contact not found with id: " + id));

@@ -61,6 +61,7 @@ public class LeadController {
     }
 
     @PostMapping("/{id}/convert")
+    @PreAuthorize("hasAuthority('LEAD_WRITE')")
     public LeadConversionResponseDTO convertLead(@PathVariable Long id) {
         return leadService.convertLead(id);
     }
