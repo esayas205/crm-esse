@@ -18,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.transaction.annotation.Transactional;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -51,13 +52,10 @@ public class AccountControllerIT {
     private ObjectMapper objectMapper;
 
     @BeforeEach
+    @Transactional
     void setUp() {
         activityRepository.deleteAll();
         opportunityRepository.deleteAll();
-        accountRepository.findAll().forEach(a -> {
-            a.getContacts().clear();
-            accountRepository.save(a);
-        });
         accountRepository.deleteAll();
         contactRepository.deleteAll();
         leadRepository.deleteAll();

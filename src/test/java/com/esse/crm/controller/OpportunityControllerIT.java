@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -57,14 +58,11 @@ public class OpportunityControllerIT {
     private Long accountId;
 
     @BeforeEach
+    @Transactional
     @WithMockUser(authorities = "ACCOUNT_WRITE")
     void setUp() throws Exception {
         activityRepository.deleteAll();
         opportunityRepository.deleteAll();
-        accountRepository.findAll().forEach(a -> {
-            a.getContacts().clear();
-            accountRepository.save(a);
-        });
         accountRepository.deleteAll();
         contactRepository.deleteAll();
         leadRepository.deleteAll();
@@ -184,7 +182,7 @@ public class OpportunityControllerIT {
     }
 
     @Test
-    @WithMockUser(authorities = "ROLE_ADMIN")
+    @WithMockUser(roles = "ADMIN")
     void shouldDeleteOpportunity() throws Exception {
         OpportunityDTO opportunityDTO = OpportunityDTO.builder()
                 .name("To Delete")
@@ -204,7 +202,8 @@ public class OpportunityControllerIT {
         mockMvc.perform(delete("/api/opportunities/{id}", id))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/api/opportunities/{id}", id))
+        mockMvc.perform(get("/api/opportunities/{id}", id)
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("DEAL_READ"))))
                 .andExpect(status().isNotFound());
     }
 
