@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -18,22 +19,26 @@ public class ActivityService {
 
     private final ActivityRepository activityRepository;
 
+    @Transactional
     public ActivityDTO createActivity(ActivityDTO dto) {
         validateParent(dto);
         Activity activity = convertToEntity(dto);
         return convertToDTO(activityRepository.save(activity));
     }
 
+    @Transactional(readOnly = true)
     public ActivityDTO getActivity(Long id) {
         return convertToDTO(activityRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Activity not found with id: " + id)));
     }
 
+    @Transactional(readOnly = true)
     public Page<ActivityDTO> searchActivities(Boolean completed, ActivityType type, LocalDateTime startDate, LocalDateTime endDate, Long leadId, Long opportunityId, Long accountId, Long contactId, Pageable pageable) {
         return activityRepository.search(completed, type, startDate, endDate, leadId, opportunityId, accountId, contactId, pageable)
                 .map(this::convertToDTO);
     }
 
+    @Transactional
     public ActivityDTO updateActivity(Long id, ActivityDTO dto) {
         Activity activity = activityRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Activity not found with id: " + id));
@@ -54,6 +59,7 @@ public class ActivityService {
         return convertToDTO(activityRepository.save(activity));
     }
 
+    @Transactional
     public ActivityDTO completeActivity(Long id, String outcome) {
         Activity activity = activityRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Activity not found with id: " + id));
@@ -64,6 +70,7 @@ public class ActivityService {
         return convertToDTO(activityRepository.save(activity));
     }
 
+    @Transactional
     public void deleteActivity(Long id) {
         if (!activityRepository.existsById(id)) {
             throw new ResourceNotFoundException("Activity not found with id: " + id);

@@ -49,11 +49,13 @@ public class LeadService {
         return convertToDTO(savedLead);
     }
 
+    @Transactional(readOnly = true)
     public LeadDTO getLead(Long id) {
         return convertToDTO(leadRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lead not found with id: " + id)));
     }
 
+    @Transactional(readOnly = true)
     public Page<LeadDTO> searchLeads(LeadStatus status, String ownerUser, LeadSource source, String searchTerm, Pageable pageable) {
         return leadRepository.search(status, ownerUser, source, searchTerm, pageable)
                 .map(this::convertToDTO);
