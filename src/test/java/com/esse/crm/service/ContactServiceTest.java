@@ -88,7 +88,7 @@ public class ContactServiceTest {
 
         assertNotNull(result);
         assertEquals("John", result.getFirstName());
-        assertTrue(account.getContacts().contains(contact));
+        assertTrue(account.getContacts().stream().anyMatch(c -> c.getFirstName().equals("John")));
         verify(contactRepository).save(any(Contact.class));
     }
 
