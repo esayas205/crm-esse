@@ -143,4 +143,187 @@ public class ContactControllerIT {
                 .andExpect(jsonPath("$.accountIds", hasSize(1)))
                 .andExpect(jsonPath("$.accountIds[0]", is(accountId2.intValue())));
     }
+    @Test
+    @WithMockUser(authorities = "CONTACT_READ")
+    void shouldGetAllContacts() throws Exception {
+        // 1. Create a contact
+        ContactDTO contactDTO = ContactDTO.builder()
+                .firstName("John")
+                .lastName("Doe")
+                .email("john.doe@example.com")
+                .accountIds(Arrays.asList(accountId1))
+                .build();
+
+        mockMvc.perform(post("/api/contacts")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("CONTACT_WRITE")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(contactDTO)))
+                .andExpect(status().isCreated());
+
+        // 2. Get all contacts
+        mockMvc.perform(get("/api/contacts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(greaterThanOrEqualTo(1))))
+                .andExpect(jsonPath("$.content[0].email", is("john.doe@example.com")));
+    }
+
+    @Test
+    @WithMockUser(authorities = "CONTACT_READ")
+    void shouldSearchContacts() throws Exception {
+        // 1. Create two contacts
+        ContactDTO c1 = ContactDTO.builder().firstName("Alice").lastName("Smith").email("alice@example.com").build();
+        ContactDTO c2 = ContactDTO.builder().firstName("Bob").lastName("Jones").email("bob@example.com").build();
+
+        mockMvc.perform(post("/api/contacts")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("CONTACT_WRITE")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(c1)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/contacts")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("CONTACT_WRITE")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(c2)))
+                .andExpect(status().isCreated());
+
+        // 2. Search for "Alice"
+        mockMvc.perform(get("/api/contacts").param("search", "Alice"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].firstName", is("Alice")));
+
+        // 3. Search for "Jones"
+        mockMvc.perform(get("/api/contacts").param("search", "Jones"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].lastName", is("Jones")));
+    }
+
+    @Test
+    @WithMockUser(authorities = "CONTACT_READ")
+    void shouldGetContactById() throws Exception {
+        // 1. Create a contact
+        ContactDTO contactDTO = ContactDTO.builder()
+                .firstName("John")
+                .lastName("Doe")
+                .email("john.doe.id@example.com")
+                .build();
+
+        String response = mockMvc.perform(post("/api/contacts")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("CONTACT_WRITE")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(contactDTO)))
+                .andReturn().getResponse().getContentAsString();
+        Long id = objectMapper.readTree(response).get("id").asLong();
+
+        // 2. Get by id
+        mockMvc.perform(get("/api/contacts/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(id.intValue())))
+                .andExpect(jsonPath("$.firstName", is("John")));
+    }
+
+    @Test
+    @WithMockUser(authorities = "CONTACT_READ")
+    void shouldReturn404WhenContactNotFound() throws Exception {
+        mockMvc.perform(get("/api/contacts/{id}", 9999))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(authorities = "ROLE_ADMIN")
+    void shouldDeleteContact() throws Exception {
+        // 1. Create a contact
+        ContactDTO contactDTO = ContactDTO.builder()
+                .firstName("Delete")
+                .lastName("Me")
+                .email("delete.me@example.com")
+                .build();
+
+        String response = mockMvc.perform(post("/api/contacts")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("CONTACT_WRITE")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(contactDTO)))
+                .andReturn().getResponse().getContentAsString();
+        Long id = objectMapper.readTree(response).get("id").asLong();
+
+        // 2. Delete it
+        mockMvc.perform(delete("/api/contacts/{id}", id))
+                .andExpect(status().isNoContent());
+
+        // 3. Verify it's gone
+        mockMvc.perform(get("/api/contacts/{id}", id)
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("CONTACT_READ"))))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(authorities = "CONTACT_WRITE")
+    void shouldReturn403WhenDeletingWithoutAdminRole() throws Exception {
+        mockMvc.perform(delete("/api/contacts/{id}", 1L))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(authorities = "CONTACT_WRITE")
+    void shouldReturn400WhenCreatingInvalidContact() throws Exception {
+        ContactDTO contactDTO = ContactDTO.builder()
+                .firstName("") // Invalid
+                .lastName("Doe")
+                .email("invalid-email") // Invalid
+                .build();
+
+        mockMvc.perform(post("/api/contacts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(contactDTO)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldReturn401WhenUnauthorized() throws Exception {
+        // No @WithMockUser for this test case (or override with empty)
+        mockMvc.perform(get("/api/contacts")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(authorities = "CONTACT_READ")
+    void shouldGetContactActivities() throws Exception {
+        // 1. Create a contact
+        ContactDTO contactDTO = ContactDTO.builder()
+                .firstName("John")
+                .lastName("Doe")
+                .email("john.activities@example.com")
+                .build();
+
+        String contactResponse = mockMvc.perform(post("/api/contacts")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("CONTACT_WRITE")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(contactDTO)))
+                .andReturn().getResponse().getContentAsString();
+        Long contactId = objectMapper.readTree(contactResponse).get("id").asLong();
+
+        // 2. Create an activity for this contact
+        // Assuming there is an activity endpoint. If not, we might need to use repository to insert directly.
+        // Looking at ActivityController, it should have a POST /api/activities
+        
+        com.esse.crm.dto.activity.ActivityDTO activityDTO = com.esse.crm.dto.activity.ActivityDTO.builder()
+                .subject("Call John")
+                .type(com.esse.crm.dto.activity.ActivityType.CALL)
+                .contactId(contactId)
+                .build();
+
+        mockMvc.perform(post("/api/activities")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ACTIVITY_WRITE")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(activityDTO)))
+                .andExpect(status().isCreated());
+
+        // 3. Get activities for the contact
+        mockMvc.perform(get("/api/contacts/{id}/activities", contactId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].subject", is("Call John")));
+    }
 }
