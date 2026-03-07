@@ -24,16 +24,19 @@ public class ContactService {
     private final ContactRepository contactRepository;
     private final AccountRepository accountRepository;
 
+    @Transactional(readOnly = true)
     public Page<ContactDTO> getAllContacts(String searchTerm, Pageable pageable) {
         return contactRepository.searchContacts(searchTerm, pageable)
                 .map(this::convertToDTO);
     }
 
+    @Transactional(readOnly = true)
     public Page<ContactDTO> getContactsByAccount(Long accountId, Pageable pageable) {
         return contactRepository.findByAccountId(accountId, pageable)
                 .map(this::convertToDTO);
     }
 
+    @Transactional(readOnly = true)
     public ContactDTO getContactById(Long id) {
         Contact contact = contactRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Contact not found with id: " + id));
@@ -42,9 +45,12 @@ public class ContactService {
 
     @Transactional
     public ContactDTO createContact(ContactDTO contactDTO) {
-        List<Account> accounts = accountRepository.findAllById(contactDTO.getAccountIds());
-        if (accounts.size() != contactDTO.getAccountIds().size()) {
-            throw new ResourceNotFoundException("One or more accounts not found");
+        List<Account> accounts = List.of();
+        if (contactDTO.getAccountIds() != null && !contactDTO.getAccountIds().isEmpty()) {
+            accounts = accountRepository.findAllById(contactDTO.getAccountIds());
+            if (accounts.size() != contactDTO.getAccountIds().size()) {
+                throw new ResourceNotFoundException("One or more accounts not found");
+            }
         }
 
         Contact contact = convertToEntity(contactDTO);
@@ -67,9 +73,12 @@ public class ContactService {
         Contact contact = contactRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Contact not found with id: " + id));
         
-        List<Account> accounts = accountRepository.findAllById(contactDTO.getAccountIds());
-        if (accounts.size() != contactDTO.getAccountIds().size()) {
-            throw new ResourceNotFoundException("One or more accounts not found");
+        List<Account> accounts = List.of();
+        if (contactDTO.getAccountIds() != null && !contactDTO.getAccountIds().isEmpty()) {
+            accounts = accountRepository.findAllById(contactDTO.getAccountIds());
+            if (accounts.size() != contactDTO.getAccountIds().size()) {
+                throw new ResourceNotFoundException("One or more accounts not found");
+            }
         }
 
         contact.setFirstName(contactDTO.getFirstName());
@@ -81,8 +90,10 @@ public class ContactService {
         
         // Update relationships
         // Remove from old accounts
-        for (Account account : contact.getAccounts()) {
-            account.getContacts().remove(contact);
+        if (contact.getAccounts() != null) {
+            for (Account account : contact.getAccounts()) {
+                account.getContacts().remove(contact);
+            }
         }
         
         contact.setAccounts(accounts);

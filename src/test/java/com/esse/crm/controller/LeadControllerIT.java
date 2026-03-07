@@ -18,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.transaction.annotation.Transactional;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -51,13 +52,10 @@ public class LeadControllerIT {
     private ObjectMapper objectMapper;
 
     @BeforeEach
+    @Transactional
     void setUp() {
         activityRepository.deleteAll();
         opportunityRepository.deleteAll();
-        accountRepository.findAll().forEach(a -> {
-            a.getContacts().clear();
-            accountRepository.save(a);
-        });
         accountRepository.deleteAll();
         contactRepository.deleteAll();
         leadRepository.deleteAll();
@@ -161,7 +159,8 @@ public class LeadControllerIT {
         Long id = objectMapper.readTree(response).get("id").asLong();
 
         // 2. Convert the lead
-        mockMvc.perform(post("/api/leads/{id}/convert", id))
+        mockMvc.perform(post("/api/leads/{id}/convert", id)
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("LEAD_WRITE"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.leadId", is(id.intValue())))
                 .andExpect(jsonPath("$.accountId", notNullValue()))
@@ -169,7 +168,8 @@ public class LeadControllerIT {
                 .andExpect(jsonPath("$.opportunityId", notNullValue()));
 
         // 3. Verify lead status is CONVERTED
-        mockMvc.perform(get("/api/leads/{id}", id))
+        mockMvc.perform(get("/api/leads/{id}", id)
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("LEAD_READ"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status", is("CONVERTED")));
     }
@@ -193,7 +193,8 @@ public class LeadControllerIT {
         
         Long id = objectMapper.readTree(response).get("id").asLong();
 
-        mockMvc.perform(post("/api/leads/{id}/convert", id))
+        mockMvc.perform(post("/api/leads/{id}/convert", id)
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("admin").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("LEAD_WRITE"))))
                 .andExpect(status().isBadRequest());
     }
 }

@@ -39,11 +39,13 @@ public class OpportunityService {
         return convertToDTO(savedOpportunity);
     }
 
+    @Transactional(readOnly = true)
     public OpportunityDTO getOpportunity(Long id) {
         return convertToDTO(opportunityRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Opportunity not found with id: " + id)));
     }
 
+    @Transactional(readOnly = true)
     public Page<OpportunityDTO> searchOpportunities(OpportunityStage stage, Long accountId, LocalDate startDate, LocalDate endDate, BigDecimal minAmount, BigDecimal maxAmount, Pageable pageable) {
         return opportunityRepository.search(stage, accountId, startDate, endDate, minAmount, maxAmount, pageable)
                 .map(this::convertToDTO);

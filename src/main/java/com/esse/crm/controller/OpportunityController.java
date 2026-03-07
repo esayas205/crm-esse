@@ -58,6 +58,7 @@ public class OpportunityController {
     }
 
     @PatchMapping("/{id}/stage")
+    @PreAuthorize("hasAuthority('DEAL_WRITE')")
     public OpportunityDTO advanceStage(@PathVariable Long id, @RequestParam OpportunityStage stage) {
         return opportunityService.advanceStage(id, stage);
     }
