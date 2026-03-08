@@ -1,5 +1,6 @@
 package com.esse.crm.service;
 
+import com.esse.crm.mapper.LeadMapper;
 import com.esse.crm.dto.lead.LeadConversionResponseDTO;
 import com.esse.crm.dto.lead.LeadDTO;
 import com.esse.crm.dto.lead.LeadStatus;
@@ -18,7 +19,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.modelmapper.ModelMapper;
 
 import java.util.Optional;
 
@@ -42,7 +42,7 @@ public class LeadServiceTest {
     private OpportunityService opportunityService;
 
     @Mock
-    private ModelMapper modelMapper;
+    private LeadMapper leadMapper;
 
     @InjectMocks
     private LeadService leadService;
@@ -69,9 +69,9 @@ public class LeadServiceTest {
     @Test
     void createLead_ShouldReturnDTO_WhenEmailUnique() {
         when(leadRepository.findByEmail(any())).thenReturn(Optional.empty());
-        when(modelMapper.map(any(LeadDTO.class), eq(Lead.class))).thenReturn(lead);
+        when(leadMapper.toEntity(any(LeadDTO.class))).thenReturn(lead);
         when(leadRepository.save(any(Lead.class))).thenReturn(lead);
-        when(modelMapper.map(any(Lead.class), eq(LeadDTO.class))).thenReturn(leadDTO);
+        when(leadMapper.toDTO(any(Lead.class))).thenReturn(leadDTO);
 
         LeadDTO result = leadService.createLead(leadDTO);
 

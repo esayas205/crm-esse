@@ -1,6 +1,7 @@
 package com.esse.crm.service;
 
 import com.esse.crm.dto.ContactDTO;
+import com.esse.crm.mapper.ContactMapper;
 import com.esse.crm.entity.Account;
 import com.esse.crm.entity.Contact;
 import com.esse.crm.exception.ResourceNotFoundException;
@@ -34,6 +35,9 @@ public class ContactServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
+
+    @Mock
+    private ContactMapper contactMapper;
 
     @InjectMocks
     private ContactService contactService;
@@ -71,6 +75,7 @@ public class ContactServiceTest {
     void getAllContacts_ShouldReturnPage() {
         Pageable pageable = PageRequest.of(0, 10);
         when(contactRepository.searchContacts(any(), any())).thenReturn(new PageImpl<>(Collections.singletonList(contact)));
+        when(contactMapper.toDTO(any(Contact.class))).thenReturn(contactDTO);
 
         Page<ContactDTO> result = contactService.getAllContacts("John", pageable);
 
@@ -82,7 +87,9 @@ public class ContactServiceTest {
     @Test
     void createContact_ShouldReturnDTO_WhenAccountsExist() {
         when(accountRepository.findAllById(any())).thenReturn(Collections.singletonList(account));
+        when(contactMapper.toEntity(any(ContactDTO.class))).thenReturn(contact);
         when(contactRepository.save(any(Contact.class))).thenReturn(contact);
+        when(contactMapper.toDTO(any(Contact.class))).thenReturn(contactDTO);
 
         ContactDTO result = contactService.createContact(contactDTO);
 
@@ -103,7 +110,9 @@ public class ContactServiceTest {
     void updateContact_ShouldReturnUpdatedDTO() {
         when(contactRepository.findById(1L)).thenReturn(Optional.of(contact));
         when(accountRepository.findAllById(any())).thenReturn(Collections.singletonList(account));
+        doNothing().when(contactMapper).updateContactFromDto(any(ContactDTO.class), any(Contact.class));
         when(contactRepository.save(any(Contact.class))).thenReturn(contact);
+        when(contactMapper.toDTO(any(Contact.class))).thenReturn(contactDTO);
 
         contactDTO.setFirstName("Jane");
         ContactDTO result = contactService.updateContact(1L, contactDTO);

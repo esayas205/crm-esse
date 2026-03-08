@@ -2,6 +2,7 @@ package com.esse.crm.service;
 
 import com.esse.crm.dto.AccountDTO;
 import com.esse.crm.dto.AccountStatus;
+import com.esse.crm.mapper.AccountMapper;
 import com.esse.crm.entity.Account;
 import com.esse.crm.exception.ResourceNotFoundException;
 import com.esse.crm.repository.AccountRepository;
@@ -28,6 +29,9 @@ public class AccountServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
+
+    @Mock
+    private AccountMapper accountMapper;
 
     @InjectMocks
     private AccountService accountService;
@@ -58,23 +62,25 @@ public class AccountServiceTest {
         Page<Account> accountPage = new PageImpl<>(Collections.singletonList(account));
 
         when(accountRepository.searchAccounts(any(), any())).thenReturn(accountPage);
+        when(accountMapper.toDTO(any(Account.class))).thenReturn(accountDTO);
 
         Page<AccountDTO> result = accountService.getAllAccounts("Test", pageable);
 
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
-        assertEquals(account.getAccountName(), result.getContent().get(0).getAccountName());
+        assertEquals(accountDTO.getAccountName(), result.getContent().get(0).getAccountName());
         verify(accountRepository).searchAccounts("Test", pageable);
     }
 
     @Test
     void getAccountById_ShouldReturnDTO_WhenIdExists() {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        when(accountMapper.toDTO(any(Account.class))).thenReturn(accountDTO);
 
         AccountDTO result = accountService.getAccountById(1L);
 
         assertNotNull(result);
-        assertEquals(account.getAccountName(), result.getAccountName());
+        assertEquals(accountDTO.getAccountName(), result.getAccountName());
     }
 
     @Test
@@ -86,25 +92,29 @@ public class AccountServiceTest {
 
     @Test
     void createAccount_ShouldReturnDTO() {
+        when(accountMapper.toEntity(any(AccountDTO.class))).thenReturn(account);
         when(accountRepository.save(any(Account.class))).thenReturn(account);
+        when(accountMapper.toDTO(any(Account.class))).thenReturn(accountDTO);
 
         AccountDTO result = accountService.createAccount(accountDTO);
 
         assertNotNull(result);
-        assertEquals(account.getAccountName(), result.getAccountName());
+        assertEquals(accountDTO.getAccountName(), result.getAccountName());
         verify(accountRepository).save(any(Account.class));
     }
 
     @Test
     void updateAccount_ShouldReturnUpdatedDTO() {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        doNothing().when(accountMapper).updateAccountFromDto(any(AccountDTO.class), any(Account.class));
         when(accountRepository.save(any(Account.class))).thenReturn(account);
+        when(accountMapper.toDTO(any(Account.class))).thenReturn(accountDTO);
 
         accountDTO.setAccountName("Updated Name");
         AccountDTO result = accountService.updateAccount(1L, accountDTO);
 
         assertNotNull(result);
-        assertEquals("Updated Name", result.getAccountName());
+        assertEquals(accountDTO.getAccountName(), result.getAccountName());
         verify(accountRepository).save(account);
     }
 

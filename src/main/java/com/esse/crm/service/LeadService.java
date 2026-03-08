@@ -1,5 +1,6 @@
 package com.esse.crm.service;
 
+import com.esse.crm.mapper.LeadMapper;
 import com.esse.crm.dto.AccountDTO;
 import com.esse.crm.dto.AccountStatus;
 import com.esse.crm.dto.ContactDTO;
@@ -16,7 +17,6 @@ import com.esse.crm.repository.AccountRepository;
 import com.esse.crm.repository.ContactRepository;
 import com.esse.crm.repository.LeadRepository;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -33,32 +33,32 @@ public class LeadService {
     private final AccountRepository accountRepository;
     private final ContactRepository contactRepository;
     private final OpportunityService opportunityService;
-    private final ModelMapper modelMapper;
+    private final LeadMapper leadMapper;
 
     @Transactional
     public LeadDTO createLead(LeadDTO leadDTO) {
         if (leadRepository.findByEmail(leadDTO.getEmail()).isPresent()) {
             throw new ConflictException("Lead with this email already exists");
         }
-        Lead lead = convertToEntity(leadDTO);
+        Lead lead = leadMapper.toEntity(leadDTO);
         if (lead.getStatus() == null) {
             lead.setStatus(LeadStatus.NEW);
         }
         Lead savedLead = leadRepository.save(lead);
 
-        return convertToDTO(savedLead);
+        return leadMapper.toDTO(savedLead);
     }
 
     @Transactional(readOnly = true)
     public LeadDTO getLead(Long id) {
-        return convertToDTO(leadRepository.findById(id)
+        return leadMapper.toDTO(leadRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lead not found with id: " + id)));
     }
 
     @Transactional(readOnly = true)
     public Page<LeadDTO> searchLeads(LeadStatus status, String ownerUser, LeadSource source, String searchTerm, Pageable pageable) {
         return leadRepository.search(status, ownerUser, source, searchTerm, pageable)
-                .map(this::convertToDTO);
+                .map(leadMapper::toDTO);
     }
 
     @Transactional
@@ -66,17 +66,11 @@ public class LeadService {
         Lead lead = leadRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lead not found with id: " + id));
         
-        lead.setSource(leadDTO.getSource());
-        lead.setCompany(leadDTO.getCompany());
-        lead.setContactName(leadDTO.getContactName());
-        lead.setEmail(leadDTO.getEmail());
-        lead.setPhone(leadDTO.getPhone());
-        lead.setStatus(leadDTO.getStatus());
-        lead.setOwnerUser(leadDTO.getOwnerUser());
+        leadMapper.updateLeadFromDto(leadDTO, lead);
         
         Lead updatedLead = leadRepository.save(lead);
 
-        return convertToDTO(updatedLead);
+        return leadMapper.toDTO(updatedLead);
     }
 
     @Transactional
@@ -145,17 +139,5 @@ public class LeadService {
                 .contactId(contact.getId())
                 .opportunityId(savedOpportunity.getId())
                 .build();
-    }
-
-    private Lead convertToEntity(LeadDTO dto) {
-        return modelMapper.map(dto, Lead.class);
-    }
-
-    private LeadDTO convertToDTO(Lead entity) {
-        return modelMapper.map(entity, LeadDTO.class);
-    }
-
-    private com.esse.crm.dto.activity.ActivityDTO convertActivityToDTO(com.esse.crm.entity.Activity entity) {
-        return modelMapper.map(entity, com.esse.crm.dto.activity.ActivityDTO.class);
     }
 }

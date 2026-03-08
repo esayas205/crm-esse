@@ -2,6 +2,7 @@ package com.esse.crm.service;
 
 import com.esse.crm.dto.ContactDTO;
 import com.esse.crm.dto.activity.ActivityDTO;
+import com.esse.crm.mapper.ContactMapper;
 import com.esse.crm.entity.Account;
 import com.esse.crm.entity.Activity;
 import com.esse.crm.entity.Contact;
@@ -23,24 +24,25 @@ public class ContactService {
 
     private final ContactRepository contactRepository;
     private final AccountRepository accountRepository;
+    private final ContactMapper contactMapper;
 
     @Transactional(readOnly = true)
     public Page<ContactDTO> getAllContacts(String searchTerm, Pageable pageable) {
         return contactRepository.searchContacts(searchTerm, pageable)
-                .map(this::convertToDTO);
+                .map(contactMapper::toDTO);
     }
 
     @Transactional(readOnly = true)
     public Page<ContactDTO> getContactsByAccount(Long accountId, Pageable pageable) {
         return contactRepository.findByAccountId(accountId, pageable)
-                .map(this::convertToDTO);
+                .map(contactMapper::toDTO);
     }
 
     @Transactional(readOnly = true)
     public ContactDTO getContactById(Long id) {
         Contact contact = contactRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Contact not found with id: " + id));
-        return convertToDTO(contact);
+        return contactMapper.toDTO(contact);
     }
 
     @Transactional
@@ -53,7 +55,7 @@ public class ContactService {
             }
         }
 
-        Contact contact = convertToEntity(contactDTO);
+        Contact contact = contactMapper.toEntity(contactDTO);
         // In ManyToMany, we need to manage both sides if we want it to be reflected in the session
         // but typically saving the owning side (Account) works if configured, 
         // or just setting the collection on the side we're saving.
@@ -65,7 +67,7 @@ public class ContactService {
         
         Contact savedContact = contactRepository.save(contact);
 
-        return convertToDTO(savedContact);
+        return contactMapper.toDTO(savedContact);
     }
 
     @Transactional
@@ -81,12 +83,7 @@ public class ContactService {
             }
         }
 
-        contact.setFirstName(contactDTO.getFirstName());
-        contact.setLastName(contactDTO.getLastName());
-        contact.setEmail(contactDTO.getEmail());
-        contact.setPhone(contactDTO.getPhone());
-        contact.setJobTitle(contactDTO.getJobTitle());
-        contact.setPrimaryContact(contactDTO.isPrimaryContact());
+        contactMapper.updateContactFromDto(contactDTO, contact);
         
         // Update relationships
         // Remove from old accounts
@@ -107,7 +104,7 @@ public class ContactService {
         
         Contact updatedContact = contactRepository.save(contact);
 
-        return convertToDTO(updatedContact);
+        return contactMapper.toDTO(updatedContact);
     }
 
     @Transactional
@@ -116,55 +113,5 @@ public class ContactService {
                 .orElseThrow(() -> new ResourceNotFoundException("Contact not found with id: " + id));
 
         contactRepository.delete(contact);
-    }
-
-    private ContactDTO convertToDTO(Contact contact) {
-        return ContactDTO.builder()
-                .id(contact.getId())
-                .firstName(contact.getFirstName())
-                .lastName(contact.getLastName())
-                .email(contact.getEmail())
-                .phone(contact.getPhone())
-                .jobTitle(contact.getJobTitle())
-                .isPrimaryContact(contact.isPrimaryContact())
-                .accountIds(contact.getAccounts() != null ? contact.getAccounts().stream()
-                        .map(Account::getId)
-                        .collect(Collectors.toList()) : null)
-                .activities(contact.getActivities() != null ? contact.getActivities().stream()
-                        .map(this::convertActivityToDTO)
-                        .collect(Collectors.toList()) : null)
-                .createdAt(contact.getCreatedAt())
-                .updatedAt(contact.getUpdatedAt())
-                .build();
-    }
-
-    private ActivityDTO convertActivityToDTO(Activity entity) {
-        return ActivityDTO.builder()
-                .id(entity.getId())
-                .type(entity.getType())
-                .subject(entity.getSubject())
-                .description(entity.getDescription())
-                .dueAt(entity.getDueAt())
-                .completed(entity.isCompleted())
-                .outcome(entity.getOutcome())
-                .leadId(entity.getLeadId())
-                .opportunityId(entity.getOpportunityId())
-                .accountId(entity.getAccountId())
-                .contactId(entity.getContactId())
-                .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
-                .build();
-    }
-
-    private Contact convertToEntity(ContactDTO dto) {
-        return Contact.builder()
-                .id(dto.getId())
-                .firstName(dto.getFirstName())
-                .lastName(dto.getLastName())
-                .email(dto.getEmail())
-                .phone(dto.getPhone())
-                .jobTitle(dto.getJobTitle())
-                .isPrimaryContact(dto.isPrimaryContact())
-                .build();
     }
 }

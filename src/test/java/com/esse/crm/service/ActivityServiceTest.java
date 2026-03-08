@@ -2,6 +2,7 @@ package com.esse.crm.service;
 
 import com.esse.crm.dto.activity.ActivityDTO;
 import com.esse.crm.dto.activity.ActivityType;
+import com.esse.crm.mapper.ActivityMapper;
 import com.esse.crm.entity.Activity;
 import com.esse.crm.exception.ResourceNotFoundException;
 import com.esse.crm.repository.ActivityRepository;
@@ -23,6 +24,9 @@ public class ActivityServiceTest {
 
     @Mock
     private ActivityRepository activityRepository;
+
+    @Mock
+    private ActivityMapper activityMapper;
 
     @InjectMocks
     private ActivityService activityService;
@@ -49,12 +53,14 @@ public class ActivityServiceTest {
 
     @Test
     void createActivity_ShouldReturnDTO_WhenValid() {
+        when(activityMapper.toEntity(any(ActivityDTO.class))).thenReturn(activity);
         when(activityRepository.save(any(Activity.class))).thenReturn(activity);
+        when(activityMapper.toDTO(any(Activity.class))).thenReturn(activityDTO);
 
         ActivityDTO result = activityService.createActivity(activityDTO);
 
         assertNotNull(result);
-        assertEquals("Test Subject", result.getSubject());
+        assertEquals(activityDTO.getSubject(), result.getSubject());
         verify(activityRepository).save(any(Activity.class));
     }
 
@@ -74,6 +80,7 @@ public class ActivityServiceTest {
     void completeActivity_ShouldUpdateStatus() {
         when(activityRepository.findById(1L)).thenReturn(Optional.of(activity));
         when(activityRepository.save(any(Activity.class))).thenReturn(activity);
+        when(activityMapper.toDTO(any(Activity.class))).thenReturn(activityDTO);
 
         ActivityDTO result = activityService.completeActivity(1L, "Done");
 

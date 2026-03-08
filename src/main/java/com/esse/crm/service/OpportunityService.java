@@ -2,6 +2,7 @@ package com.esse.crm.service;
 
 import com.esse.crm.dto.opportunity.OpportunityDTO;
 import com.esse.crm.dto.opportunity.OpportunityStage;
+import com.esse.crm.mapper.OpportunityMapper;
 import com.esse.crm.entity.Account;
 import com.esse.crm.entity.Lead;
 import com.esse.crm.entity.Opportunity;
@@ -28,27 +29,40 @@ public class OpportunityService {
     private final OpportunityRepository opportunityRepository;
     private final AccountRepository accountRepository;
     private final LeadRepository leadRepository;
+    private final OpportunityMapper opportunityMapper;
 
     private static final Set<OpportunityStage> FINAL_STAGES = EnumSet.of(OpportunityStage.WON, OpportunityStage.LOST);
 
     @Transactional
     public OpportunityDTO createOpportunity(OpportunityDTO dto) {
-        Opportunity opportunity = convertToEntity(dto);
+        Account account = accountRepository.findById(dto.getAccountId())
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + dto.getAccountId()));
+
+        Lead primaryLead = null;
+        if (dto.getPrimaryLeadId() != null) {
+            primaryLead = leadRepository.findById(dto.getPrimaryLeadId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Lead not found with id: " + dto.getPrimaryLeadId()));
+        }
+
+        Opportunity opportunity = opportunityMapper.toEntity(dto);
+        opportunity.setAccount(account);
+        opportunity.setPrimaryLead(primaryLead);
+
         Opportunity savedOpportunity = opportunityRepository.save(opportunity);
 
-        return convertToDTO(savedOpportunity);
+        return opportunityMapper.toDTO(savedOpportunity);
     }
 
     @Transactional(readOnly = true)
     public OpportunityDTO getOpportunity(Long id) {
-        return convertToDTO(opportunityRepository.findById(id)
+        return opportunityMapper.toDTO(opportunityRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Opportunity not found with id: " + id)));
     }
 
     @Transactional(readOnly = true)
     public Page<OpportunityDTO> searchOpportunities(OpportunityStage stage, Long accountId, LocalDate startDate, LocalDate endDate, BigDecimal minAmount, BigDecimal maxAmount, Pageable pageable) {
         return opportunityRepository.search(stage, accountId, startDate, endDate, minAmount, maxAmount, pageable)
-                .map(this::convertToDTO);
+                .map(opportunityMapper::toDTO);
     }
 
     @Transactional
@@ -56,15 +70,11 @@ public class OpportunityService {
         Opportunity opportunity = opportunityRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Opportunity not found with id: " + id));
 
-        opportunity.setName(dto.getName());
-        opportunity.setStage(dto.getStage());
-        opportunity.setAmount(dto.getAmount());
-        opportunity.setCloseDate(dto.getCloseDate());
-        opportunity.setProbability(dto.getProbability());
+        opportunityMapper.updateOpportunityFromDto(dto, opportunity);
 
         Opportunity updatedOpportunity = opportunityRepository.save(opportunity);
 
-        return convertToDTO(updatedOpportunity);
+        return opportunityMapper.toDTO(updatedOpportunity);
     }
 
     @Transactional
@@ -81,7 +91,7 @@ public class OpportunityService {
         opportunity.setStage(newStage);
         Opportunity updatedOpportunity = opportunityRepository.save(opportunity);
 
-        return convertToDTO(updatedOpportunity);
+        return opportunityMapper.toDTO(updatedOpportunity);
     }
 
     @Transactional
@@ -90,63 +100,5 @@ public class OpportunityService {
                 .orElseThrow(() -> new ResourceNotFoundException("Opportunity not found with id: " + id));
         
         opportunityRepository.delete(opportunity);
-    }
-
-    private Opportunity convertToEntity(OpportunityDTO dto) {
-        Account account = accountRepository.findById(dto.getAccountId())
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + dto.getAccountId()));
-
-        Lead primaryLead = null;
-        if (dto.getPrimaryLeadId() != null) {
-            primaryLead = leadRepository.findById(dto.getPrimaryLeadId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Lead not found with id: " + dto.getPrimaryLeadId()));
-        }
-
-        return Opportunity.builder()
-                .id(dto.getId())
-                .name(dto.getName())
-                .stage(dto.getStage())
-                .amount(dto.getAmount())
-                .closeDate(dto.getCloseDate())
-                .probability(dto.getProbability())
-                .account(account)
-                .primaryLead(primaryLead)
-                .build();
-    }
-
-    private OpportunityDTO convertToDTO(Opportunity entity) {
-        return OpportunityDTO.builder()
-                .id(entity.getId())
-                .name(entity.getName())
-                .stage(entity.getStage())
-                .amount(entity.getAmount())
-                .closeDate(entity.getCloseDate())
-                .probability(entity.getProbability())
-                .accountId(entity.getAccount().getId())
-                .primaryLeadId(entity.getPrimaryLead() != null ? entity.getPrimaryLead().getId() : null)
-                .activities(entity.getActivities() != null ? entity.getActivities().stream()
-                        .map(this::convertActivityToDTO)
-                        .collect(java.util.stream.Collectors.toList()) : null)
-                .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
-                .build();
-    }
-
-    private com.esse.crm.dto.activity.ActivityDTO convertActivityToDTO(com.esse.crm.entity.Activity entity) {
-        return com.esse.crm.dto.activity.ActivityDTO.builder()
-                .id(entity.getId())
-                .type(entity.getType())
-                .subject(entity.getSubject())
-                .description(entity.getDescription())
-                .dueAt(entity.getDueAt())
-                .completed(entity.isCompleted())
-                .outcome(entity.getOutcome())
-                .leadId(entity.getLeadId())
-                .opportunityId(entity.getOpportunityId())
-                .accountId(entity.getAccountId())
-                .contactId(entity.getContactId())
-                .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
-                .build();
     }
 }

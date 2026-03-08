@@ -2,6 +2,7 @@ package com.esse.crm.service;
 
 import com.esse.crm.dto.opportunity.OpportunityDTO;
 import com.esse.crm.dto.opportunity.OpportunityStage;
+import com.esse.crm.mapper.OpportunityMapper;
 import com.esse.crm.entity.Account;
 import com.esse.crm.entity.Opportunity;
 import com.esse.crm.exception.ResourceNotFoundException;
@@ -39,6 +40,9 @@ public class OpportunityServiceTest {
     @Mock
     private LeadRepository leadRepository;
 
+    @Mock
+    private OpportunityMapper opportunityMapper;
+
     @InjectMocks
     private OpportunityService opportunityService;
 
@@ -73,12 +77,14 @@ public class OpportunityServiceTest {
     @Test
     void createOpportunity_ShouldReturnDTO() {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        when(opportunityMapper.toEntity(any(OpportunityDTO.class))).thenReturn(opportunity);
         when(opportunityRepository.save(any(Opportunity.class))).thenReturn(opportunity);
+        when(opportunityMapper.toDTO(any(Opportunity.class))).thenReturn(opportunityDTO);
 
         OpportunityDTO result = opportunityService.createOpportunity(opportunityDTO);
 
         assertNotNull(result);
-        assertEquals("Test Opportunity", result.getName());
+        assertEquals(opportunityDTO.getName(), result.getName());
         verify(opportunityRepository).save(any(Opportunity.class));
     }
 
@@ -86,6 +92,7 @@ public class OpportunityServiceTest {
     void advanceStage_ShouldUpdateStage_WhenNotFinal() {
         when(opportunityRepository.findById(1L)).thenReturn(Optional.of(opportunity));
         when(opportunityRepository.save(any(Opportunity.class))).thenReturn(opportunity);
+        when(opportunityMapper.toDTO(any(Opportunity.class))).thenReturn(opportunityDTO);
 
         OpportunityDTO result = opportunityService.advanceStage(1L, OpportunityStage.QUALIFICATION);
 
@@ -104,11 +111,12 @@ public class OpportunityServiceTest {
     @Test
     void getOpportunity_ShouldReturnDTO() {
         when(opportunityRepository.findById(1L)).thenReturn(Optional.of(opportunity));
+        when(opportunityMapper.toDTO(any(Opportunity.class))).thenReturn(opportunityDTO);
 
         OpportunityDTO result = opportunityService.getOpportunity(1L);
 
         assertNotNull(result);
-        assertEquals("Test Opportunity", result.getName());
+        assertEquals(opportunityDTO.getName(), result.getName());
     }
 
     @Test
@@ -116,6 +124,7 @@ public class OpportunityServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         when(opportunityRepository.search(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(Collections.singletonList(opportunity)));
+        when(opportunityMapper.toDTO(any(Opportunity.class))).thenReturn(opportunityDTO);
 
         Page<OpportunityDTO> result = opportunityService.searchOpportunities(null, null, null, null, null, null, pageable);
 
